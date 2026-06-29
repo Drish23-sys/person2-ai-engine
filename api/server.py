@@ -5,6 +5,9 @@ Person 3 (Node.js) calls this instead of importing pipeline.py directly.
 
 Run with: uvicorn server:app --reload --port 8000
 """
+import sys
+import os
+sys.path.insert(0, os.path.dirname(__file__))
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
