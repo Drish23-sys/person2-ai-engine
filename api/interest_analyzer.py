@@ -61,31 +61,37 @@ Respond ONLY in this JSON format:
 def analyze_interests(quiz_answers: dict) -> dict:
     """
     Main function: takes quiz answers, returns interest scores.
-
-    Returns:
-        {
-          "success": bool,
-          "interest_scores": {...} or None,
-          "top_interest_summary": str or None,
-          "error": str or None
-        }
+    Includes retry logic for when Gemini doesn't return clean JSON.
     """
     prompt = build_analyzer_prompt(quiz_answers)
-    result = safe_llm_call(prompt, system_prompt=ANALYZER_SYSTEM_PROMPT)
+    
+    for attempt in range(3):  # retry up to 3 times
+        result = safe_llm_call(prompt, system_prompt=ANALYZER_SYSTEM_PROMPT, max_tokens=800)
 
-    if not result["success"]:
-        return {"success": False, "interest_scores": None, "top_interest_summary": None, "error": result["error"]}
+        if not result["success"]:
+            return {"success": False, "interest_scores": None, 
+                    "top_interest_summary": None, "error": result["error"]}
 
-    parsed = parse_json_response(result["raw_response"])
-    if parsed is None:
-        return {"success": False, "interest_scores": None, "top_interest_summary": None,
-                 "error": "Could not parse LLM response as JSON"}
+        parsed = parse_json_response(result["raw_response"])
+        
+        if parsed is not None:
+            return {
+                "success": True,
+                "interest_scores": parsed.get("interest_scores", {}),
+                "top_interest_summary": parsed.get("top_interest_summary", ""),
+                "error": None
+            }
+        
+        # If parsing failed, print raw response for debugging
+        print(f"---- INTEREST ANALYZER parse failed (attempt {attempt + 1}) ----")
+        print(result["raw_response"])
+        print("----------------------------------------------------------------")
 
     return {
-        "success": True,
-        "interest_scores": parsed.get("interest_scores", {}),
-        "top_interest_summary": parsed.get("top_interest_summary", ""),
-        "error": None
+        "success": False,
+        "interest_scores": None,
+        "top_interest_summary": None,
+        "error": "Could not parse LLM response as JSON after 3 attempts"
     }
 
 
