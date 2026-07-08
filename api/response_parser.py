@@ -10,24 +10,21 @@ import re
 
 
 def parse_json_response(raw_response: str) -> dict | None:
-    """
-    Extracts and parses JSON from an LLM's raw text response.
-    Returns None if parsing fails (caller should handle this case).
-    """
     if not raw_response:
         return None
 
     cleaned = raw_response.strip()
 
-    # Strip markdown code fences if present (```json ... ``` or ``` ... ```)
-    if cleaned.startswith("```"):
-        cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned)
-        cleaned = re.sub(r"\s*```$", "", cleaned)
+    # Remove ALL variations of markdown code fences
+    # Handles ```json, ```JSON, ```, and anything in between
+    cleaned = re.sub(r'^```[a-zA-Z]*\s*', '', cleaned)
+    cleaned = re.sub(r'\s*```$', '', cleaned)
+    cleaned = cleaned.strip()
 
     try:
         return json.loads(cleaned)
     except json.JSONDecodeError:
-        # Last resort: try to find the first { ... last } block
+        # Last resort: find first { to last }
         start = cleaned.find("{")
         end = cleaned.rfind("}")
         if start != -1 and end != -1 and end > start:
