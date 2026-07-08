@@ -60,3 +60,7 @@ def recommend(request: RecommendRequest):
 @app.get("/health")
 def health():
     return {"status": "ok", "message": "AI engine is running"}
+
+@app.get("/ping")
+def ping():
+    return {"status": "awake"}
