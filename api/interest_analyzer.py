@@ -11,9 +11,10 @@ from data_loader import get_all_categories
 from response_parser import parse_json_response
 
 
-ANALYZER_SYSTEM_PROMPT = """You are a career interest analysis engine for an
-Indian student career-guidance platform. You read a student's quiz answers
-and output ONLY valid JSON describing their interest profile.
+ANALYZER_SYSTEM_PROMPT = """You are a career interest analysis engine.
+Output ONLY a single valid JSON object. 
+No markdown, no code fences, no explanation, no extra text.
+Just the raw JSON object starting with { and ending with }.
 
 Rules:
 - Respond with valid JSON only. No explanation, no markdown formatting, no preamble.
@@ -66,7 +67,7 @@ def analyze_interests(quiz_answers: dict) -> dict:
     prompt = build_analyzer_prompt(quiz_answers)
     
     for attempt in range(3):  # retry up to 3 times
-        result = safe_llm_call(prompt, system_prompt=ANALYZER_SYSTEM_PROMPT, max_tokens=800)
+        result = safe_llm_call(prompt, system_prompt=ANALYZER_SYSTEM_PROMPT, max_tokens=1500)
 
         if not result["success"]:
             return {"success": False, "interest_scores": None, 
