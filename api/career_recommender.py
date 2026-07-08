@@ -96,40 +96,36 @@ def recommend_careers(student: dict, quiz_answers: dict, interest_scores: dict) 
     """
     Main function: takes student profile + quiz answers + interest scores,
     returns the top 3 career recommendations.
+    Includes retry logic for when Gemini doesn't return clean/complete JSON.
     """
     prompt = build_recommender_prompt(student, quiz_answers, interest_scores)
-    # This response is bigger than the interest analyzer's (3 full career
-    # objects + courses), so it needs a higher token ceiling or Gemini
-    # truncates mid-JSON and parsing fails.
-    result = safe_llm_call(prompt, system_prompt=RECOMMENDER_SYSTEM_PROMPT, max_tokens=4096)
 
-    if not result["success"]:
-        return {"success": False, "recommendations": [], "summary": None, "error": result["error"]}
+    for attempt in range(3):  # retry up to 3 times, same pattern as interest_analyzer.py
+        result = safe_llm_call(prompt, system_prompt=RECOMMENDER_SYSTEM_PROMPT, max_tokens=8192)
 
-    parsed = parse_json_response(result["raw_response"])
-    if parsed is None:
-        # Print the raw response so you can see exactly what Gemini sent back
-        # instead of guessing why parsing failed.
-        print("---- RAW LLM RESPONSE (parse failed) ----")
+        if not result["success"]:
+            return {"success": False, "recommendations": [], "summary": None, "error": result["error"]}
+
+        parsed = parse_json_response(result["raw_response"])
+
+        if parsed is not None:
+            recommendations = parsed.get("recommendations", [])
+            valid_ids = {c["id"] for c in load_careers()}
+            recommendations = [r for r in recommendations if r.get("career_id") in valid_ids]
+
+            return {
+                "success": True,
+                "recommendations": recommendations,
+                "summary": parsed.get("summary", ""),
+                "error": None
+            }
+
+        print(f"---- RECOMMENDER parse failed (attempt {attempt + 1}) ----")
         print(result["raw_response"])
-        print("------------------------------------------")
-        return {"success": False, "recommendations": [], "summary": None,
-                 "error": "Could not parse LLM response as JSON"}
+        print("------------------------------------------------------------")
 
-    recommendations = parsed.get("recommendations", [])
-
-    # Validate every recommended career actually exists in the dataset —
-    # prevents the LLM from hallucinating a career not in Person 4's data.
-    valid_ids = {c["id"] for c in load_careers()}
-    recommendations = [r for r in recommendations if r.get("career_id") in valid_ids]
-
-    return {
-        "success": True,
-        "recommendations": recommendations,
-        "summary": parsed.get("summary", ""),
-        "error": None
-    }
-
+    return {"success": False, "recommendations": [], "summary": None,
+             "error": "Could not parse LLM response as JSON after 3 attempts"}
 
 if __name__ == "__main__":
     sample_student = {"name": "Drish", "education": "B.Tech, IV Semester", "age": 20}
