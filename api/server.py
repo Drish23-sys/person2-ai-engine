@@ -9,7 +9,7 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(__file__))
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
@@ -61,6 +61,6 @@ def recommend(request: RecommendRequest):
 def health():
     return {"status": "ok", "message": "AI engine is running"}
 
-@app.get("/ping")
-def ping():
+@app.api_route("/ping", methods=["GET", "HEAD"])
+def ping(request: Request):
     return {"status": "awake"}
