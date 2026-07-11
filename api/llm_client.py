@@ -1,10 +1,4 @@
-"""
-llm_client.py
-Handles the connection to the Google Gemini API (free tier, no card required).
-This is the lowest-level file — every other module calls into this one.
 
-Get a free key at: https://aistudio.google.com -> "Get API key"
-"""
 
 import os
 from google import genai
@@ -13,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Gemini 2.5 Flash has the most generous free-tier limits and strong quality.
-MODEL_NAME = "gemini-2.5-flash"
+MODEL_NAME = "gemini-2.0-flash"
 
 _client = None
 
