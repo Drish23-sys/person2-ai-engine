@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Gemini 2.5 Flash has the most generous free-tier limits and strong quality.
-MODEL_NAME = "gemini-2.0-flash-lite"
+MODEL_NAME = "gemini-3.5-flash-lite"
 
 _client = None
 
